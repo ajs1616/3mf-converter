@@ -1,26 +1,43 @@
 # 3MF Converter for Orca Slicer
 
-Converts old-format BambuStudio 3MF files to the current Orca Slicer format so you don't have to manually recolor your models every time you open them.
+Having trouble opening 3MF files in Orca Slicer? Models loading without colors, or not loading at all? This tool fixes that.
 
-## The Problem
+## Quick Start
 
-3MF files created with older versions of BambuStudio store mesh data inline in a single model file. Current versions of Orca Slicer expect mesh data split into separate object files with production extension metadata (UUIDs, paths). When you open an old-format file in Orca, it loads but loses all color/material assignments, forcing you to repaint everything by hand.
+1. Download **`3MF Converter.exe`** from the [Releases](../../releases) page
+2. Double-click to run (no install needed)
+3. Click the **+** area to select your 3MF files
+4. Optionally pick an output folder (defaults to same folder as input)
+5. Click **Convert All**
+6. Open the new `*_orca.3mf` file in Orca Slicer
 
-## Download
+That's it! Your converted files will be saved next to the originals with `_orca` added to the name.
 
-Grab the latest `3MF Converter.exe` from the [Releases](../../releases) page. No Python or dependencies needed — just download and double-click.
+## What does this fix?
 
-## Usage
+3MF files come in different formats depending on what software created them. Current versions of Orca Slicer expect a specific structure (separate object files, production metadata, etc.). Files from older BambuStudio versions, other modeling tools, or downloaded models often don't match this structure.
 
-### GUI (recommended)
-1. Run `3MF Converter.exe` (or `python gui.py`)
-2. Click the drop zone to browse for 3MF files (or drag and drop)
-3. Click **Convert All**
-4. Converted files are saved next to the originals as `*_orca.3mf`
+This tool automatically converts any 3MF into the format Orca expects:
 
-Files already in the new format are automatically detected and skipped.
+- **Old BambuStudio files** — restructures inline mesh data and adds required metadata
+- **Bare 3MF files** (from Blender, 3D Builder, modeling tools, etc.) — wraps them in the full Orca-compatible structure
+- **Already-compatible files** — detected and skipped automatically
 
-### Command Line
+All paint colors, support painting, and material assignments are preserved during conversion.
+
+## Features
+
+- Dark-themed GUI — no command line needed
+- Batch convert multiple files at once
+- Progress bar with per-file status
+- Debug log panel to see exactly what's happening
+- Handles files of any size (tested with 95MB+ 3MF files)
+- Auto-skips files that are already in the right format
+
+## Command Line Usage
+
+For power users, the converter also works from the command line:
+
 ```bash
 # Convert a single file
 python convert_3mf.py "My Model.3mf"
@@ -28,32 +45,41 @@ python convert_3mf.py "My Model.3mf"
 # Convert with specific output
 python convert_3mf.py input.3mf -o output.3mf
 
-# Batch convert
+# Batch convert everything in a folder
 python convert_3mf.py *.3mf
 
 # Convert in place (overwrites original)
 python convert_3mf.py input.3mf --in-place
 ```
 
-## What It Does
+## Building from source
 
-- Extracts inline mesh data into separate `3D/Objects/` files
-- Adds production extension (`p:UUID`, `p:path`) that current Orca requires
-- Creates `3D/_rels/3dmodel.model.rels` linking object files
-- Preserves all `paint_color` and `paint_supports` data (your color assignments)
-- Auto-detects already-converted files and skips them
-
-## Building the exe yourself
+If you want to run from source or build the exe yourself:
 
 ```bash
+# Run directly (Python 3.8+, no dependencies needed)
+python gui.py
+
+# Build standalone exe
 pip install pyinstaller
 pyinstaller --onefile --windowed --name "3MF Converter" gui.py
+# Output: dist/3MF Converter.exe
 ```
 
-The exe will be in the `dist/` folder.
+## FAQ
 
-## Requirements (for running from source)
+**Q: Will this mess up my original files?**
+A: No. The converter creates a new file with `_orca` appended to the name. Your original is never modified.
 
-- Python 3.8+
-- No external dependencies (uses only stdlib + tkinter)
-- Optional: `tkinterdnd2` for drag-and-drop support in the GUI
+**Q: My file was "skipped" — is that bad?**
+A: Nope! That means your file is already in the correct format for Orca. No conversion needed.
+
+**Q: The conversion takes a while on big files — is it stuck?**
+A: Large 3MF files (50MB+) can take 15-30 seconds. Watch the progress bar and log panel — if it's working, you'll see activity there.
+
+**Q: My model loads but has no colors after converting.**
+A: That means the original file didn't have color data to begin with. This tool preserves all existing colors, but it can't add colors that aren't there. You'll need to paint the model in Orca Slicer.
+
+---
+
+Made by [PrintShack3D](https://github.com/ajs1616) to help the maker community.
