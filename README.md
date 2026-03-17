@@ -74,15 +74,27 @@ python convert_3mf.py input.3mf --in-place
 python convert_3mf.py input.3mf --strip-settings
 ```
 
-## Building from source
+## System Requirements
 
-If you want to run from source or build the exe yourself:
+**Windows exe:** Windows 10 or 11 (64-bit). No install, no dependencies, no admin rights needed.
+
+**Mac / Linux:** Run from source with Python 3.8+. No dependencies needed — just Python with tkinter (included by default on most systems).
 
 ```bash
-# Run directly (Python 3.8+, no dependencies needed)
+# Clone the repo
+git clone https://github.com/ajs1616/3mf-converter.git
+cd 3mf-converter
+
+# Run the GUI
 python gui.py
 
-# Build standalone exe
+# Or use the command line
+python convert_3mf.py "My Model.3mf"
+```
+
+## Building the exe from source
+
+```bash
 pip install pyinstaller
 pyinstaller --onefile --windowed --name "3MF Converter" gui.py
 # Output: dist/3MF Converter.exe
