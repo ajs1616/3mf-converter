@@ -104,6 +104,18 @@ class ConverterApp:
         self.output_reset_btn.bind("<Enter>", lambda e: self.output_reset_btn.configure(fg=ACCENT_HOVER))
         self.output_reset_btn.bind("<Leave>", lambda e: self.output_reset_btn.configure(fg=ACCENT))
 
+        # --- Options row ---
+        options_frame = tk.Frame(self.root, bg=BG, padx=20)
+        options_frame.pack(fill=tk.X, pady=(0, 6))
+
+        self.strip_settings_var = tk.BooleanVar(value=False)
+        self.strip_cb = tk.Checkbutton(
+            options_frame, text="Strip slicer settings (geometry + colors only)",
+            variable=self.strip_settings_var, font=("Segoe UI", 9),
+            bg=BG, fg=FG_DIM, selectcolor=BG_CARD, activebackground=BG,
+            activeforeground=FG, highlightthickness=0)
+        self.strip_cb.pack(side=tk.LEFT)
+
         # --- Drop zone / file list area ---
         self.list_frame = tk.Frame(self.root, bg=BG, padx=20)
         self.list_frame.pack(fill=tk.BOTH, expand=True)
@@ -301,18 +313,31 @@ class ConverterApp:
                                     break
                                 tail = chunk[-50000:] if len(chunk) >= 50000 else (tail + chunk)[-50000:]
                             classify_bytes = head + tail
-                    fmt = classify_3mf(classify_bytes)
+                    fmt = classify_3mf(classify_bytes, zip_names=names)
                     self._log(f"  Format: {fmt}", "info")
                     if fmt == "orca_ready":
                         item.status = "skipped"
                         item.message = "Already in Orca format"
                         self._log(f"  -> Marked as SKIPPED", "warn")
+                    elif fmt == "sliced":
+                        item.status = "error"
+                        item.message = "Sliced .gcode.3mf — no geometry to convert"
+                        self._log(f"  -> Sliced file, no model data", "error")
                     elif fmt == "unknown":
                         item.status = "error"
                         item.message = "Unrecognized 3MF format"
                         self._log(f"  -> Unrecognized format", "error")
+                    else:
+                        self._log(f"  -> Ready to convert ({fmt})", "success")
                 else:
-                    item.status = "error"
+                    # Check for sliced gcode files
+                    has_gcode = any(n.endswith(".gcode") for n in names)
+                    if has_gcode:
+                        item.status = "error"
+                        item.message = "Sliced .gcode.3mf — no geometry to convert"
+                        self._log(f"  -> Sliced file with no model data", "error")
+                    else:
+                        item.status = "error"
                     item.message = "Not a valid 3MF (no model file)"
                     self._log(f"  -> No 3D/3dmodel.model found", "error")
         except Exception as e:
@@ -505,7 +530,9 @@ class ConverterApp:
                 self._log_threadsafe(f"  Input:  {item.path}", "info")
                 self._log_threadsafe(f"  Output: {output_path}", "info")
 
-                success = convert_3mf(item.path, output_path, force=True)
+                strip = self.strip_settings_var.get()
+                success = convert_3mf(item.path, output_path, force=True,
+                                      strip_settings=strip)
 
                 if success:
                     item.status = "done"
