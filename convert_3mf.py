@@ -59,13 +59,17 @@ def classify_3mf(model_data, zip_names=None):
         "unknown"     - can't determine
     """
     if isinstance(model_data, bytes):
-        header = model_data[:50000].decode("utf-8", errors="replace")
-        tail = model_data[-50000:].decode("utf-8", errors="replace") if len(model_data) > 50000 else ""
+        if len(model_data) <= 100000:
+            combined = model_data.decode("utf-8", errors="replace")
+        else:
+            header = model_data[:50000].decode("utf-8", errors="replace")
+            tail = model_data[-50000:].decode("utf-8", errors="replace")
+            combined = header + tail
     else:
-        header = model_data[:50000]
-        tail = model_data[-50000:] if len(model_data) > 50000 else ""
-
-    combined = header + tail
+        if len(model_data) <= 100000:
+            combined = model_data
+        else:
+            combined = model_data[:50000] + model_data[-50000:]
 
     # Check ZIP contents for extra signals
     if zip_names:
@@ -171,9 +175,10 @@ def _extract_materials(raw_text):
     for m in re.finditer(r'(<(?:m:)?colorgroup\b[^>]*>.*?</(?:m:)?colorgroup>)', raw_text, re.DOTALL):
         materials_blocks.append(m.group(1))
 
-    # Find <m:color ...> standalone
+    # Find <m:color ...> standalone (not already inside a colorgroup)
+    all_existing = "\n".join(materials_blocks)
     for m in re.finditer(r'(<(?:m:)?color\b[^>]*/>)', raw_text):
-        if m.group(1) not in str(materials_blocks):
+        if m.group(1) not in all_existing:
             materials_blocks.append(m.group(1))
 
     return materials_blocks
@@ -506,9 +511,16 @@ def _stream_convert_bambu_old(zin, zout, source_name, strip_settings=False):
         if is_referenced:
             new_main = new_main.replace(mesh_info["match"].group(0), "", 1)
 
-    # Remove material definitions from main model (they're in sub-models now)
-    for block in material_blocks:
-        new_main = new_main.replace(block, "", 1)
+    # Only remove material definitions from main model if ALL mesh objects
+    # were extracted to sub-models (otherwise some objects still need them)
+    all_extracted = all(
+        any(re.search(rf'objectid="{mid}"', asm["body"])
+            for asm in assembly_info.values())
+        for mid in mesh_objects.keys()
+    )
+    if all_extracted and material_blocks:
+        for block in material_blocks:
+            new_main = new_main.replace(block, "", 1)
 
     # Add UUIDs to build items
     def add_build_uuids(m):
@@ -742,18 +754,23 @@ def convert_3mf(input_path, output_path=None, force=False, strip_settings=False)
             print(f"Unrecognized 3MF structure: {input_path}")
             return False
 
-        source_name = re.sub(r'[^\w]', '_', input_path.stem)
+        source_name = re.sub(r'[^\w]', '_', input_path.stem) or "model"
 
-        with zipfile.ZipFile(output_path, "w", zipfile.ZIP_DEFLATED) as zout:
-            if fmt == "bare":
-                success = _stream_convert_bare(zin, zout, source_name,
-                                               input_path.name, strip_settings)
-            elif fmt == "prusa":
-                success = _stream_convert_prusa(zin, zout, source_name, strip_settings)
-            elif fmt == "orca_ready" and strip_settings:
-                success = _strip_settings_only(zin, zout)
-            else:
-                success = _stream_convert_bambu_old(zin, zout, source_name, strip_settings)
+        try:
+            with zipfile.ZipFile(output_path, "w", zipfile.ZIP_DEFLATED) as zout:
+                if fmt == "bare":
+                    success = _stream_convert_bare(zin, zout, source_name,
+                                                   input_path.name, strip_settings)
+                elif fmt == "prusa":
+                    success = _stream_convert_prusa(zin, zout, source_name, strip_settings)
+                elif fmt == "orca_ready" and strip_settings:
+                    success = _strip_settings_only(zin, zout)
+                else:
+                    success = _stream_convert_bambu_old(zin, zout, source_name, strip_settings)
+        except Exception as e:
+            print(f"Error during conversion: {e}")
+            output_path.unlink(missing_ok=True)
+            raise
 
         if success:
             print(f"Converted: {input_path}")

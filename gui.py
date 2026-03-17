@@ -285,6 +285,8 @@ class ConverterApp:
             self._add_file(p)
 
     def _add_file(self, path):
+        if self.converting:
+            return
         path = Path(path)
         if any(f.path == path for f in self.files):
             self._log(f"Skipping duplicate: {path.name}", "warn")
@@ -338,8 +340,8 @@ class ConverterApp:
                         self._log(f"  -> Sliced file with no model data", "error")
                     else:
                         item.status = "error"
-                    item.message = "Not a valid 3MF (no model file)"
-                    self._log(f"  -> No 3D/3dmodel.model found", "error")
+                        item.message = "Not a valid 3MF (no model file)"
+                        self._log(f"  -> No 3D/3dmodel.model found", "error")
         except Exception as e:
             self._log(f"  Error inspecting file: {e}", "error")
 
@@ -495,6 +497,7 @@ class ConverterApp:
         self.converting = True
         self.convert_btn.configure(text="Converting...", state=tk.DISABLED, bg=BG_CARD)
         self.add_btn.configure(state=tk.DISABLED)
+        self.strip_cb.configure(state=tk.DISABLED)
 
         self.progress_value = 0.0
         self._show_progress()
@@ -563,6 +566,7 @@ class ConverterApp:
     def _conversion_done(self):
         self.convert_btn.configure(text="Convert All", state=tk.NORMAL, bg=ACCENT)
         self.add_btn.configure(state=tk.NORMAL)
+        self.strip_cb.configure(state=tk.NORMAL)
         self._refresh_list()
 
         done = sum(1 for f in self.files if f.status == "done")
