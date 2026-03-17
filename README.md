@@ -1,6 +1,8 @@
-# 3MF Converter for Orca Slicer
+# 3MF Converter for Orca Slicer & Elegoo Slicer
 
-Having trouble opening 3MF files in Orca Slicer? Models loading without colors, or not loading at all? This tool fixes that.
+Having trouble opening 3MF files in Orca Slicer or Elegoo Slicer? Models loading without colors, or not loading at all? This tool fixes that.
+
+Elegoo Slicer (used by the Centauri 2 and other Elegoo printers) is built on Orca Slicer, so it has the same 3MF compatibility requirements. This tool works for both.
 
 ## Quick Start
 
@@ -17,7 +19,7 @@ That's it! Your converted files will be saved next to the originals with `_orca`
 
 3MF files come in different formats depending on what software created them. Current versions of Orca Slicer expect a specific structure (separate object files, production metadata, etc.). Files from older BambuStudio versions, PrusaSlicer, modeling tools, or downloaded models often don't match this structure.
 
-This tool automatically converts any 3MF into the format Orca expects:
+This tool automatically converts any 3MF into the format Orca/Elegoo Slicer expects:
 
 - **Old BambuStudio files** — restructures inline mesh data and adds required metadata
 - **Bare 3MF files** (from Blender, 3D Builder, Cura, modeling tools, etc.) — wraps them in the full Orca-compatible structure
@@ -91,8 +93,11 @@ pyinstaller --onefile --windowed --name "3MF Converter" gui.py
 **Q: Will this mess up my original files?**
 A: No. The converter creates a new file with `_orca` appended to the name. Your original is never modified.
 
+**Q: Does this work with Elegoo Slicer / Centauri 2?**
+A: Yes! Elegoo Slicer is based on Orca Slicer, so it has the same 3MF requirements. This tool was originally built for exactly this reason.
+
 **Q: My file was "skipped" — is that bad?**
-A: Nope! That means your file is already in the correct format for Orca. No conversion needed.
+A: Nope! That means your file is already in the correct format for Orca/Elegoo Slicer. No conversion needed.
 
 **Q: The conversion takes a while on big files — is it stuck?**
 A: Large 3MF files (50MB+) can take 15-30 seconds. Watch the progress bar and log panel — if it's working, you'll see activity there.
